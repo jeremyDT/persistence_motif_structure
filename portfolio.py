@@ -6,7 +6,7 @@ import itertools
 import networkx as nx
 
 
-temp = [y for z in store_persistent_tri for x in z[fit_motif:] for y in x]
+temp = [y for z in store_persistent_tri for x in z[break_points[1]:] for y in x]
 #temp = [y for x in store_persistent_tri[0][fit_motif:] for y in x]
 
 print('created temp')
@@ -31,22 +31,54 @@ for i in dict.keys():
 plt.hist(counts)
 plt.show()
 
-def make_clique_matrix(clique_list, N):
+def make_clique_matrix(clique_list, N, break_point):
 
     matrix = np.zeros(shape=(N, N))
 
-    for h in clique_list:
+    for u in clique_list:
 
-        for k in itertools.permutations(h, 2):
-            matrix[k[0], k[1]] +=1
+        for g in u:
+
+            for clique in g[break_point:]:
+
+                for k in itertools.permutations(clique, 2):
+                    print(k)
+                    matrix[k[0], k[1]] +=1
 
     return matrix
 
-tri_matrix = make_clique_matrix(store_persistent_tri, 100)
 
-G = nx.from_numpy_matrix(tri_matrix)
+def matrix_from_dict(dict, N):
+    matrix = np.zeros(shape=(N, N))
 
-nx.draw(G, with_labels=True, font_weight='bold')
+    for i in dict.keys():
+        if dict[i][0] > 10000:
+
+            for k in itertools.combinations(dict[i][1], 2):
+                print(k)
+                matrix[k[0], k[1]] += dict[i][0]
+
+    return matrix
+
+tri_matrix = matrix_from_dict(dict, 100) #make_clique_matrix(store_persistent_tri, 100, break_points[1])
+
+def create_graph_from_adj(A):
+    # A=[(n1, n2, freq),....]
+    weights = []
+    G = nx.Graph()
+    for a in itertools.combinations(range(100), 2):
+        G.add_edge(a[0], a[1], weight = A[a[0], a[1]])
+        weights.append(A[a[0], a[1]])
+    return G, weights
+df_names = pd.read_csv('./trial_matrix_names.csv', header = 0, parse_dates=True, index_col=0)
+labels_nx = {}
+for index, name in zip(range(100), list(df_names.columns)):
+    labels_nx[index] = name
+#G = nx.from_numpy_matrix(tri_matrix)
+G, weights = create_graph_from_adj(tri_matrix)
+#np.heaviside(weights/max(weights) - 0.5, 0)
+nx.draw(G, pos = nx.shell_layout(G), with_labels=True, font_weight='bold', node_size = 10, width = weights/max(weights), labels = labels_nx, font_size = 5)
+plt.show()
 
 strong_tr = []
 threshold = 100000 #( time_length  - fit_motif )*iterations *0.70
@@ -65,7 +97,6 @@ for i in dict.keys():
         mid_tr.append(dict[i][1])
 
 print('triangles in strong', len(strong_tr))
-df_names = pd.read_csv('./trial_matrix_names.csv', header = 0, parse_dates=True, index_col=0)
 df= pd.read_excel('./data_for_mkt_comparison/MORE_stocks.xlsx', header = 0, index_col=0, parse_dates=True)
 
 df = df[list(df_names.columns)]

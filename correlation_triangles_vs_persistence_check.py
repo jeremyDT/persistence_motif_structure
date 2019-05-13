@@ -2,7 +2,7 @@ import itertools
 import numpy as np
 import matplotlib.pyplot as plt
 
-all_tri = list(itertools.combinations_with_replacement(range(100), 3))
+all_tri = list(itertools.combinations(range(100), 3))
 
 def tr_strength(triangle, W):
 
@@ -22,8 +22,6 @@ for i in dict.keys():
 probabs = []
 for file in file_list:
 
-    print(file)
-
     W = np.loadtxt(open(file, "rb"), delimiter=",")
 
     strengths = [tr_strength(x, W) for x in all_tri]
@@ -33,6 +31,8 @@ for file in file_list:
     matching = [x for x in sorted_tri if x in strong_tr]
 
     probabs.append(len(matching))
+
+    print(file, matching)
 
 plt.hist(probabs, bins = 50)
 plt.show()

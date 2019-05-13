@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import random
 import itertools
+import matplotlib.pyplot as plt
 import networkx as nx
 
 
@@ -47,6 +48,7 @@ def make_clique_matrix(clique_list, N, break_point):
 
     return matrix
 
+'''ADJACENCY MATRIX AND GRAPH FOR NETWORK VISUALISATION (SPARSE AS THRESHOLD ON TRIANGLES)'''
 
 def matrix_from_dict(dict, N):
     matrix = np.zeros(shape=(N, N))
@@ -97,34 +99,35 @@ for i in dict.keys():
         mid_tr.append(dict[i][1])
 
 print('triangles in strong', len(strong_tr))
-df= pd.read_excel('./data_for_mkt_comparison/MORE_stocks.xlsx', header = 0, index_col=0, parse_dates=True)
+#df= pd.read_excel('./data_for_mkt_comparison/MORE_stocks.xlsx', header = 0, index_col=0, parse_dates=True)
 
-df = df[list(df_names.columns)]
+#df = df[list(df_names.columns)]
 
 names = []
 for i in strong_tr:
     for temp_hedge in i:
 
         #temp_hedge = random.sample(i, 1)[0]
-        temp_name = df.columns[temp_hedge]
+        temp_name = df_names.columns[temp_hedge]
         if temp_name not in names:
             names.append(temp_name)
 
-df_filter = df.drop(names, axis = 1)
-print(df.shape, df_filter.shape)
+df_filter = df_names.drop(names, axis = 1)
+print(df_names.shape, df_filter.shape)
 
 ################################################
-
+indices = []
 names = []
 for i in mid_tr:
     #i = strong_tr[1]
-    for temp_hedge in random.sample(i, 1):
+    for temp_hedge in i:
         # temp_hedge = random.sample(i, 1)[0]
-        temp_name = df.columns[temp_hedge]
+        temp_name = df_names.columns[temp_hedge]
         if temp_name not in names:
             names.append(temp_name)
+            indices.append(temp_hedge)
 
-df_filter = df_names[names + random.sample(list(df_names.columns), 10)]
+df_filter = df_names[names + random.sample(list(df_names.columns), 20)]
 
 sigmas = []
 N = len(names)
@@ -142,26 +145,49 @@ for k in range(N):
 
 sigmas.append(sigma)
 
+
+
+
 weights = np.full(N, 1/N)
 running_sigma = 0
-for f in range(100):
+store_running = []
 
-    df_random = df_names[random.sample(list(df_names.columns), N) + random.sample(list(df_names.columns), 10)]
+for t_perm in range(100):
 
-    cov_ret = df_random.cov()
+    names = []
+    for i in mid_tr:
+        # i = strong_tr[1]
+        for temp_hedge in random.sample(i, 2):
+            # temp_hedge = random.sample(i, 1)[0]
+            temp_name = df_names.columns[temp_hedge]
+            if temp_name not in names:
+                names.append(temp_name)
+    print('difference', N - len(names))
 
-    cov_ret = cov_ret.values
-    sigma = 0
+    for f in range(1000):
 
-    for k in range(N):
-        for m in range(N):
-            if k != m:
-                sigma += (cov_ret[k,m])
-    running_sigma += sigma
+        df_random = df_names[names + random.sample(list(df_names.columns), 20 + N - len(names))]
 
-sigmas.append(running_sigma/100)
+        cov_ret = df_random.cov()
+
+        cov_ret = cov_ret.values
+        sigma = 0
+
+        for k in range(N):
+            for m in range(N):
+                if k != m:
+                    sigma += (cov_ret[k,m])
+        running_sigma += sigma
+        store_running.append(sigma)
+
+sigmas.append(running_sigma/100000)
 
 print(sigmas)
+
+plt.hist(store_running, bins = 100)
+plt.axvline(sigmas[0])
+plt.axvline(sigmas[1])
+plt.show()
 
 
 
